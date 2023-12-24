@@ -14,15 +14,15 @@ trimmedChainID=$(echo $hexChainID | tr -d '"')
 chainID=$(printf "%d\n" $trimmedChainID)
 echo "ChainID $chainID"
 
+# Deploy singleton factory
 pushd lib/safe-singleton-factory
-
 yarn install
-# Setup singleton env file
+## Setup singleton env file
 printf "RPC=\"$RPC\"\n" > .env
-
-
+## Get gas price on the target chain
 gasPrice=$(yarn estimate | sed -n "s/.*gasPrice: '\([^']*\)'.*/\1/p")
 
+## Make deployment file under artifacts/chainID/
 mkdir -p artifacts/$chainID
 printf "{
 	\"gasPrice\": $gasPrice,
@@ -32,15 +32,18 @@ printf "{
 	\"address\": \"0x4e59b44847b379578588920ca78fbf26c0b4956c\"
 }" > artifacts/$chainID/deployment.json
 
+## Submit the presigned tracation to deploy the singleton
 yarn submit
 
 popd
 
+# Deploy Safe contracts
 pushd lib/safe-contracts
+## Checkout into the 1.3.0-libs.0 version
 git checkout v1.3.0-libs.0
 yarn install
+## Setup env file
 printf "PK=\"$PK\"\nNODE_URL=\"$RPC\"\n" > .env
 yarn deploy-all custom
 popd
-
 echo "Completed Safe contracts deployment"
